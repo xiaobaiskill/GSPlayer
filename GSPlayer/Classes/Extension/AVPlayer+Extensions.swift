@@ -14,7 +14,6 @@ import AppKit
 #endif
 
 public extension AVPlayer {
-    
     var bufferProgress: Double {
         return currentItem?.bufferProgress ?? -1
     }
@@ -28,14 +27,29 @@ public extension AVPlayer {
     }
     
     #if !os(macOS)
+    #if os(visionOS)
+    func currentImage() async -> UIImage? {
+        guard
+            let playerItem = currentItem
+        else { return nil }
+        do {
+            let cgImage = try await AVAssetImageGenerator(asset: playerItem.asset).image(at: currentTime())
+            return UIImage(cgImage: cgImage.image)
+        } catch {
+            return nil
+        }
+    }
+    
+    #else
     var currentImage: UIImage? {
         guard
             let playerItem = currentItem,
             let cgImage = try? AVAssetImageGenerator(asset: playerItem.asset).copyCGImage(at: currentTime(), actualTime: nil)
-            else { return nil }
+        else { return nil }
 
         return UIImage(cgImage: cgImage)
     }
+    #endif
     #else
     var currentImage: NSImage? {
         guard
@@ -44,8 +58,8 @@ public extension AVPlayer {
         else {
             return nil
         }
-        let width: CGFloat = CGFloat(cgImage.width)
-        let height: CGFloat = CGFloat(cgImage.height)
+        let width = CGFloat(cgImage.width)
+        let height = CGFloat(cgImage.height)
         return NSImage(cgImage: cgImage, size: NSMakeSize(width, height))
     }
     #endif
@@ -61,5 +75,4 @@ public extension AVPlayer {
     convenience init(asset: AVURLAsset) {
         self.init(playerItem: AVPlayerItem(asset: asset))
     }
-    
 }
